@@ -64,13 +64,7 @@ export default function GroupDetail() {
       <ExpenseList expenses={expenses} />
       <AddExpenseForm groupId={id!} members={members} onAdd={fetchAll} />
       <Balances balances={balances} members={members} />
-      <Settlements
-        settlements={settlements}
-        members={members}
-        currentUserId={user?.id}
-        groupId={id!}
-        onRefresh={fetchAll}
-      />
+      <Settlements settlements={settlements} members={members} />
     </div>
   );
 }

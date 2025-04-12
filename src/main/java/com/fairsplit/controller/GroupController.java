@@ -5,8 +5,6 @@ import com.fairsplit.dto.GroupBalanceResponse;
 import com.fairsplit.dto.GroupMemberResponse;
 import com.fairsplit.dto.GroupResponse;
 import com.fairsplit.dto.JoinGroupRequest;
-import com.fairsplit.dto.MarkPaidRequest;
-import com.fairsplit.dto.SettlementInstruction;
 import com.fairsplit.entity.User;
 import com.fairsplit.service.GroupService;
 import com.fairsplit.util.AuthUtil;
@@ -50,12 +48,6 @@ public class GroupController {
         return ResponseEntity.ok(groupService.getGroupBalances(groupId, currentUser));
     }
 
-    @GetMapping("/{groupId}/settlements")
-    public ResponseEntity<List<SettlementInstruction>> getSettlements(@PathVariable UUID groupId) {
-        User currentUser = AuthUtil.getCurrentUser();
-        return ResponseEntity.ok(groupService.calculateSettlements(groupId, currentUser));
-    }
-
     @GetMapping
     public ResponseEntity<List<GroupResponse>> getMyGroups() {
         User currentUser = AuthUtil.getCurrentUser();
@@ -67,23 +59,5 @@ public class GroupController {
         User currentUser = AuthUtil.getCurrentUser();
         return ResponseEntity.ok(groupService.getGroupById(groupId, currentUser));
     }
-
-    @PostMapping("{groupId}/settlements/mark-paid")
-    public ResponseEntity<Void> markSettlementAsPaid(
-        @PathVariable UUID groupId,
-        @RequestBody MarkPaidRequest request
-    ) {
-        User requester = AuthUtil.getCurrentUser();
-
-        groupService.markSettlementAsPaid(
-            groupId,
-            request.getFrom(),
-            request.getTo(),
-            requester
-        );
-
-        return ResponseEntity.noContent().build();
-    }
-
 
 }

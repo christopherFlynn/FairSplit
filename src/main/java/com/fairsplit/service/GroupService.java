@@ -5,17 +5,13 @@ import com.fairsplit.dto.GroupBalanceResponse;
 import com.fairsplit.dto.GroupMemberResponse;
 import com.fairsplit.dto.GroupResponse;
 import com.fairsplit.dto.JoinGroupRequest;
-import com.fairsplit.dto.SettlementInstruction;
 import com.fairsplit.entity.Expense;
 import com.fairsplit.entity.ExpenseSplit;
 import com.fairsplit.entity.Group;
 import com.fairsplit.entity.GroupMembership;
-import com.fairsplit.entity.Settlement;
 import com.fairsplit.entity.User;
 import com.fairsplit.repository.GroupMembershipRepository;
 import com.fairsplit.repository.GroupRepository;
-import com.fairsplit.repository.SettlementRepository;
-import com.fairsplit.repository.UserRepository;
 import com.fairsplit.repository.ExpenseRepository;
 import com.fairsplit.repository.ExpenseSplitRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,13 +19,10 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,8 +32,6 @@ public class GroupService {
     private final GroupMembershipRepository membershipRepository;
     private final ExpenseRepository expenseRepository;
     private final ExpenseSplitRepository splitRepository;
-    private final SettlementRepository settlementRepository;
-    private final UserRepository userRepository;
 
     public GroupResponse createGroup(CreateGroupRequest request, User user) {
         String inviteCode = generateInviteCode();
@@ -161,112 +152,6 @@ public class GroupService {
                 .map(GroupBalanceResponse.GroupBalanceResponseBuilder::build)
                 .toList();
     }
-
-    public List<SettlementInstruction> calculateSettlements(UUID groupId, User requester) {
-        Group group = groupRepository.findById(groupId)
-            .orElseThrow(() -> new IllegalArgumentException("Group not found"));
-
-        // Optional: validate requester is a member
-
-        // Step 1: Get balances
-        List<GroupBalanceResponse> balances = getGroupBalances(groupId, requester);
-
-        // Step 2: Get already-paid settlements
-        List<Settlement> paidSettlements = settlementRepository.findPaidWithUsersByGroup(group);
-
-        Set<String> paidPairs = paidSettlements.stream()
-            .map(s -> s.getFromUser().getId() + "_" + s.getToUser().getId())
-            .collect(Collectors.toSet());
-
-        // Step 4: Same logic as before
-        List<GroupBalanceResponse> creditors = new ArrayList<>();
-        List<GroupBalanceResponse> debtors = new ArrayList<>();
-
-        for (GroupBalanceResponse b : balances) {
-            if (b.getBalance().compareTo(BigDecimal.ZERO) > 0) {
-                creditors.add(b);
-            } else if (b.getBalance().compareTo(BigDecimal.ZERO) < 0) {
-                debtors.add(b);
-            }
-        }
-
-        List<SettlementInstruction> instructions = new ArrayList<>();
-
-        creditors.sort((a, b) -> b.getBalance().compareTo(a.getBalance()));
-        debtors.sort((a, b) -> a.getBalance().compareTo(b.getBalance()));
-
-        int i = 0, j = 0;
-        while (i < debtors.size() && j < creditors.size()) {
-            GroupBalanceResponse debtor = debtors.get(i);
-            GroupBalanceResponse creditor = creditors.get(j);
-
-            String pairKey = debtor.getUserId() + "_" + creditor.getUserId();
-            if (paidPairs.contains(pairKey)) {
-                // skip this pair—they've already paid
-                i++;
-                continue;
-            }
-
-            BigDecimal debt = debtor.getBalance().abs();
-            BigDecimal credit = creditor.getBalance();
-            BigDecimal min = debt.min(credit);
-
-            if (min.compareTo(BigDecimal.ZERO) > 0) {
-                instructions.add(SettlementInstruction.builder()
-                        .from(debtor.getUserId())
-                        .to(creditor.getUserId())
-                        .amount(min)
-                        .paid(false)
-                        .build());
-
-                debtor.setBalance(debtor.getBalance().add(min));
-                creditor.setBalance(creditor.getBalance().subtract(min));
-            }
-
-            if (debtor.getBalance().compareTo(BigDecimal.ZERO) == 0) i++;
-            if (creditor.getBalance().compareTo(BigDecimal.ZERO) == 0) j++;
-        }
-
-        return instructions;
-    }
-
-public void markSettlementAsPaid(UUID groupId, UUID fromUserId, UUID toUserId, User requester) {
-    Group group = groupRepository.findById(groupId)
-        .orElseThrow(() -> new IllegalArgumentException("Group not found"));
-
-    if (!fromUserId.equals(requester.getId())) {
-        throw new SecurityException("You can only mark your own payments as paid");
-    }
-
-    boolean alreadyMarked = settlementRepository.existsByGroupAndFromUser_IdAndToUser_IdAndIsPaidTrue(
-        group, fromUserId, toUserId
-    );
-    if (alreadyMarked) {
-        throw new IllegalStateException("Settlement already marked as paid");
-    }
-
-    User toUser = userRepository.findById(toUserId)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-    Settlement settlement = Settlement.builder()
-        .group(group)
-        .fromUser(requester)
-        .toUser(toUser)
-        .isPaid(true)
-        .createdAt(Instant.now())
-        .build();
-
-    System.out.println("FROM ID: " + fromUserId);
-    System.out.println("REQUESTER ID: " + requester.getId());
-    //User requester = AuthUtil.getCurrentUser();
-    System.out.println("Resolved current user: " + requester.getId());
-
-
-    settlementRepository.save(settlement);
-}
-
-
-
 
     public List<GroupResponse> getGroupsForUser(User user) {
         List<GroupMembership> memberships = membershipRepository.findByUser(user);
