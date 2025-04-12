@@ -5,6 +5,7 @@ import com.fairsplit.dto.GroupBalanceResponse;
 import com.fairsplit.dto.GroupMemberResponse;
 import com.fairsplit.dto.GroupResponse;
 import com.fairsplit.dto.JoinGroupRequest;
+import com.fairsplit.dto.MarkPaidRequest;
 import com.fairsplit.dto.SettlementInstruction;
 import com.fairsplit.entity.User;
 import com.fairsplit.service.GroupService;
@@ -66,5 +67,23 @@ public class GroupController {
         User currentUser = AuthUtil.getCurrentUser();
         return ResponseEntity.ok(groupService.getGroupById(groupId, currentUser));
     }
+
+    @PostMapping("{groupId}/settlements/mark-paid")
+    public ResponseEntity<Void> markSettlementAsPaid(
+        @PathVariable UUID groupId,
+        @RequestBody MarkPaidRequest request
+    ) {
+        User requester = AuthUtil.getCurrentUser();
+
+        groupService.markSettlementAsPaid(
+            groupId,
+            request.getFrom(),
+            request.getTo(),
+            requester
+        );
+
+        return ResponseEntity.noContent().build();
+    }
+
 
 }
