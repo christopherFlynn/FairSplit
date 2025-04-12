@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:latest
+    restart: always
+    container_name: fairsplit-db
+    environment:
+      POSTGRES_DB: fairsplit_db
+      POSTGRES_USER: fairsplit_user
+      POSTGRES_PASSWORD: fairsplit_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - fairsplit-net
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@fairsplit.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    networks:
+      - fairsplit-net
+
+volumes:
+  db-data:
+
+networks:
+  fairsplit-net:
