@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: fairsplit-backend
+    env: docker
+    plan: free
+    autoDeploy: true
+    repo: https://github.com/yourusername/fairsplit
+    branch: main
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false

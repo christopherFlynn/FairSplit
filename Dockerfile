@@ -2,7 +2,7 @@
 FROM gradle:8.5-jdk21 AS builder
 
 WORKDIR /app
-COPY --no-cache . .
+COPY . .
 
 # Build only the bootJar, skip tests for speed
 RUN gradle bootJar -x test
