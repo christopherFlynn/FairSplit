@@ -4,9 +4,9 @@ services:
     restart: always
     container_name: fairsplit-db
     environment:
-      POSTGRES_DB: fairsplit_db
-      POSTGRES_USER: fairsplit_user
-      POSTGRES_PASSWORD: fairsplit_pass
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
