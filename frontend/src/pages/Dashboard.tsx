@@ -5,10 +5,13 @@ import { getMyGroups } from "../api/groups";
 import GroupCard from "../components/GroupCard";
 import CreateGroupForm from "../components/CreateGroupForm";
 import JoinGroupForm from "../components/JoinGroupForm";
+import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
   const [user, setUser] = useState<{ name: string } | null>(null);
   const [groups, setGroups] = useState<any[]>([]);
+  const { token } = useAuth();
 
   const fetchGroups = async () => {
     const groupData = await getMyGroups();
@@ -24,6 +27,22 @@ export default function Dashboard() {
 
     fetchData();
   }, []);
+
+  if (!token) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-lg">You must be logged in to view your dashboard.</p>
+        <div className="mt-4 space-x-4">
+          <Link to="/login" className="text-blue-600 underline">
+            Login
+          </Link>
+          <Link to="/register" className="text-green-600 underline">
+            Register
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
